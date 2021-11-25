@@ -1,0 +1,40 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "privateDnsName": {
+            "type": "string"
+        },
+        "ipConfig": {
+            "type": "object"
+        },
+        "existingRecords": {
+            "type": "object"
+        }
+    },
+    "variables": {
+        "copy": [
+            {
+                "name": "aRecordName",
+                "count": "[length(parameters('ipConfig').properties.privateLinkConnectionProperties.fqdns)]",
+                "input": "[if(equals(parameters('privateDnsName'), 'privatelink.vaultcore.azure.net'), split(parameters('ipConfig').properties.privateLinkConnectionProperties.fqdns[copyIndex('aRecordName')], '.')[0], substring(parameters('ipConfig').properties.privateLinkConnectionProperties.fqdns[copyIndex('aRecordName')], 0, add(sub(length(parameters('ipConfig').properties.privateLinkConnectionProperties.fqdns[copyIndex('aRecordName')]), length(parameters('privateDnsName'))), 11)))]"
+            }
+        ]
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/privateDnsZones/A",
+            "name": "[concat(parameters('privateDnsName'),'/', split(variables('aRecordName')[copyIndex('fqdnCopy')], '.')[0])]",
+            "location": "global",
+            "apiVersion": "2018-09-01",
+            "properties": {
+                "aRecords": "[concat(if(contains(parameters('existingRecords'), variables('aRecordName')[copyIndex('fqdnCopy')]), parameters('existingRecords')[variables('aRecordName')[copyIndex('fqdnCopy')]].aRecords, json('[]')), json(concat('[{\"ipv4Address\":\"', parameters('ipConfig').properties.privateIPAddress,'\"}]')))]",
+                "ttl": "[if(contains(parameters('existingRecords'), variables('aRecordName')[copyIndex('fqdnCopy')]), parameters('existingRecords')[variables('aRecordName')[copyIndex('fqdnCopy')]].ttl, 3600)]"
+            },
+            "copy": {
+                "name": "fqdnCopy",
+                "count": "[length(parameters('ipConfig').properties.privateLinkConnectionProperties.fqdns)]"
+            }
+        }
+    ]
+}

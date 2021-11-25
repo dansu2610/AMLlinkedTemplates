@@ -67,8 +67,8 @@
     ],
     "outputs": {
         "keyUriWithVersion": {
-            "type": "string",
-            "value": "[string(reference(variables('akvKeyVersionResource')).keyUriWithVersion)]"
+            "type": "object",
+            "value": "[reference(variables('akvKeyVersionResource')).keyUriWithVersion]"
         }
     }
 }
